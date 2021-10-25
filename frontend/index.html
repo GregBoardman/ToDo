@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="stylesheets/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script type="text/javascript">
+        // takes values from submit-make-form and passes them into the
+        // go server
+        function submitMake() {
+            //console.log("submitting make");
+            // Assemble Task Data
+            var task = {};
+            task.Title = document.getElementById('task-title').value;
+            task.Desc = document.getElementById("task-desc").value;
+
+            // determine completeness of task
+            taskcomplete = document.getElementById("task-complete");
+            if (taskcomplete.checked === true) {
+                task.Complete = "true";
+            } else {
+                task.Complete = "false";
+            }
+
+            // Submit Task
+            fetch("http://localhost:9090/make", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(task),
+            }).then(res => {
+                console.log("Resquest complete. Response: ", res);
+                // TODO: reset form
+                document.getElementById("submit-make-form").reset()
+
+            }).catch(err => console.log(err));
+        }
+
+        function submitChanges() {
+            // Assemble Task Data
+            var task = {};
+            task.Title = document.getElementById('edit-title').value;
+            task.Desc = document.getElementById("edit-desc").value;
+            task.ID = document.getElementById("edit-id").value;
+
+            // determine completeness of task
+            taskcomplete = document.getElementById("edit-complete");
+            if (taskcomplete.checked === true) {
+                task.Complete = "true";
+            } else {
+                task.Complete = "false";
+            }
+
+            // Submit Task
+            fetch("http://localhost:9090/submitChanges", {
+                method: "PUT",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(task),
+            }).then(res => {
+                console.log("Resquest complete. Response: ", res);
+                // TODO: reset form
+                document.getElementById("submit-make-form").reset()
+
+            }).catch(err => console.log(err));
+            return
+        }
+
+        // DELETE TASK by title
+        function removeTaskByTitle() {
+            // Setup Request Data
+            var title = document.getElementById("get-task-title").value;
+            // convert to uri component
+            var urlpart = encodeURIComponent(title);
+
+            // Send Request Data
+            let fetchRes = fetch('http://localhost:9090/removeTaskByTitle?title=' + urlpart, {
+                method: 'DELETE',
+                body: null
+            })
+
+            console.log("End remove TaskByTitle method");
+            return
+        }
+
+        // DELETE TASK by ID
+        function removeTaskByID() {
+            // Setup Request Data
+            var id = document.getElementById("get-task-id").value;
+            // convert to uri component
+            var urlpart = encodeURIComponent(id);
+
+            // Send Request Data
+            let fetchRes = fetch('http://localhost:9090/removeTaskByID?id=' + urlpart, {
+                method: 'DELETE',
+                body: null
+            })
+
+            console.log("End remove TaskByID method");
+            return
+        }
+
+        // Takes values from get-task-form and sends it to the
+        // go server
+        function requestTaskByTitle(dropoff) {
+            // Setup Request Data
+            if (dropoff == "submitChanges") {
+                var title = document.getElementById("edit-task-title").value;
+            } else {
+                var title = document.getElementById("get-task-title").value;
+            }
+            // convert to uri component
+            var urlpart = encodeURIComponent(title);
+
+            // Send Request Data
+            let fetchRes = fetch(
+                'http://localhost:9090/requestTaskByTitle?title=' + urlpart);
+            fetchRes.then(res => {
+                //make into usable task data
+                return res.json()
+            }).then(data => {
+                console.log(data)
+                //now display the task data at dropoff
+                showResults(data, dropoff)
+            })
+
+            console.log("End requestTaskByTitle method");
+            return
+        }
+
+        // Takes values from get-task-form and sends it to the
+        // go server
+        function requestTaskByID(dropoff) {
+            // Setup Request Data
+            if (dropoff == "submitChanges") {
+                var id = document.getElementById("edit-task-id").value;
+            } else {
+                var id = document.getElementById("get-task-id").value;
+            }
+            // convert to uri component
+            var urlpart = encodeURIComponent(id);
+
+            // Send Request Data
+            let fetchRes = fetch(
+                'http://localhost:9090/requestTaskByID?id=' + urlpart);
+            fetchRes.then(res => {
+                //make into usable task data
+                return res.json()
+            }).then(data => {
+                console.log(data)
+                //now display the task data at dropoff
+                showResults(data, dropoff)
+            })
+
+            console.log("End requestTaskByTitle method");
+            return
+        }
+
+        function requestAllTasks() {
+            let fetchRes = fetch(
+                'http://localhost:9090/requestAllTasks');
+            fetchRes.then(res => {
+                //make into usable task data
+                return res.json()
+            }).then(data => {
+                console.log(data)
+                //now display the task data at dropoff
+                listResults(data)
+            })
+
+            console.log("End requestTaskByTitle method");
+            return
+        }
+
+        // displays results in select areas
+        function showResults(data, dropoff) {
+            console.log(data)
+
+            if (dropoff == "getTask") {
+                document.getElementById("results-table").style.display = "block";
+                // show and hide parts of the table that have values
+                if (data.Complete == true) {
+                    document.getElementById("results-finishTime-label").style.display = "block";
+                    document.getElementById("results-finishTime").style.display = "block";
+                    document.getElementById("results-finishTime").value = data.FinishTime;
+                } else {
+                    document.getElementById("results-finishTime-label").style.display = "none";
+                    document.getElementById("results-finishTime").style.display = "none";
+                }
+
+                // fill in the rest of the table
+                document.getElementById("results-id").value = data.ID;
+                document.getElementById("results-title").value = data.Title;
+                document.getElementById("results-desc").value = data.Desc;
+                document.getElementById("results-startTime").value = data.StartTime;
+                document.getElementById("results-complete").value = data.Complete;
+            }
+            if (dropoff == "submitChanges") {
+                document.getElementById("edit-table").style.display = "block";
+                // show and hide parts of the table that have values
+                if (data.Complete == true) {
+                    document.getElementById("edit-finishTime-label").style.display = "block";
+                    document.getElementById("edit-finishTime").style.display = "block";
+                    document.getElementById("edit-finishTime").value = data.FinishTime;
+                } else {
+                    document.getElementById("edit-finishTime-label").style.display = "none";
+                    document.getElementById("edit-finishTime").style.display = "none";
+                }
+
+                // determine what radio button to check
+                if (data.Complete == "true" || data.Complete == "[true]" || data.Complete == true) {
+                    document.getElementById("edit-incomplete").checked = false;
+                    document.getElementById("edit-complete").checked = true;
+                } else {
+                    document.getElementById("edit-complete").checked = false;
+                    document.getElementById("edit-incomplete").checked = true;
+                }
+
+                // fill in the rest of the table
+                document.getElementById("edit-startTime").value = data.StartTime;
+                document.getElementById("edit-complete").value = data.Complete;
+
+                document.getElementById("edit-id").value = data.ID;
+                document.getElementById("edit-title").value = data.Title;
+                document.getElementById("edit-desc").value = data.Desc;
+            }
+            return;
+        }
+
+        function listResults(tasks) {
+            // Delete Previous List
+            removeAllChildNodes(document.getElementById("print-all"))
+
+            // Make a card for each task
+            var i = 0;
+            for (task of tasks) {
+                // make card
+                var card = document.createElement("ARTICLE");
+                // set class to card
+                var att = document.createAttribute("class");
+                att.value = "card";
+                card.setAttributeNode(att);
+                // set unique id to card just in case
+                var att = document.createAttribute("id");
+                att.value = "card" + i;
+                card.setAttributeNode(att);
+
+                // make unordered list inside card
+                // and put in all task info
+                var list = document.createElement("UL")
+
+                _.entries(task).forEach(([key, value]) => {
+                    var item = document.createElement("LI");
+                    item.appendChild(
+                        document.createTextNode(`${key}: ${value}`)
+                    );
+                    list.appendChild(item);
+                })
+                // add list to card
+                card.appendChild(list)
+                // add card to print-all area
+                document.getElementById("print-all").appendChild(card)
+                i = i + 1;
+            }
+
+            console.log("All tasks listed")
+            return
+        }
+
+        function removeAllChildNodes(parent) {
+            while (parent.firstChild) {
+                parent.removeChild(parent.firstChild);
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div class="centered">
+        <h1>Task Interface</h1>
+    </div>
+
+    <div class="centered">
+        <section class="cards">
+            <!-- Task Creation -->
+            <article class="card">
+                <h2>Submit Task</h2>
+                <form id="submit-make-form" autocomplete="off">
+                    <!-- Title? -->
+                    <label for="task-title">Task Title: </label><br>
+                    <input id="task-title" type="text" name="task-title"><br><br>
+
+                    <!-- Description? -->
+                    <label for="task-desc">Task Description: </label><br>
+                    <textarea id="task-desc" type="textarea" cols="30" rows="10" name="task-desc"></textarea><br><br>
+
+                    <!-- Task complete? -->
+                    <p>Is the task complete?</p>
+                    <label for="task-complete">Yes</label>
+                    <input id="task-complete" type="radio" name="task-completeness" value="true">
+                    <label for="task-incomplete">No</label>
+                    <input id="task-incomplete" type="radio" name="task-completeness" value="false" checked><br><br>
+
+                    <!-- submit button -->
+                    <input type="button" onclick="submitMake()" value="Submit"><br><br>
+                </form>
+            </article>
+
+            <!-- Get Task / Delete Task -->
+            <article class="card">
+                <h2>Display and Remove Tasks</h2>
+                <form id="get-task-form" autocomplete="off">
+                    <!-- search task by title-->
+                    <label for="get-task-title">By Task Title: </label><br>
+                    <input type="text" id="get-task-title">
+                    <input type="button" onclick="requestTaskByTitle('getTask')" value="Display Task">
+                    <!-- delete task -->
+                    <input type="button" onclick="removeTaskByTitle()" value="Remove Task"><br><br>
+
+                    <!-- search task by ID -->
+                    <label for="get-task-id">By Task ID: </label><br>
+                    <input type="text" id="get-task-id">
+                    <input type="button" onclick="requestTaskByID('getTask')" value="Display Task">
+                    <!-- delete task -->
+                    <input type="button" onclick="removeTaskbyID()" value="Remove Task"><br><br>
+
+
+                    <!-- display task result 
+                    keep the syle as "display:none" until function sets it to show
+                    -->
+                    <table id="results-table" style="display:none">
+                        <tr>
+                            <td><label for="results-id">ID: </label></td>
+                            <td><textarea id="results-id" readonly="readonly"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="results-title">Title: </label></td>
+                            <td><textarea id="results-title" readonly="readonly"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="results-desc">Description: </label></td>
+                            <td><textarea id="results-desc" readonly="readonly"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="results-startTime">Start Time: </label></td>
+                            <td><textarea id="results-startTime" readonly="readonly"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label id="results-finishTime-label" for="results-finishTime" style="display:none">Finish Time:
+                                </label></td>
+                            <td><textarea id="results-finishTime" readonly="readonly" style="display:none"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="results-id">Task Complete:</label></td>
+                            <td><textarea id="results-complete" readonly="readonly"></textarea></td>
+                        </tr>
+                    </table>
+                </form>
+            </article>
+
+            <!-- Edit Task -->
+            <article class="card">
+                <h2>Edit Task</h2>
+                <form id="edit-task-form" autocomplete="off">
+                    <!-- edit task by title -->
+                    <label for="edit-task-title">By Task Title: </label><br>
+                    <input type="text" id="edit-task-title" minlength="1">
+                    <input type="button" onclick="requestTaskByTitle('submitChanges')" value="Display"><br><br>
+                    <!-- edit task by ID -->
+                    <label for="edit-task-id">By Task ID: </label><br>
+                    <input type="text" id="edit-task-id">
+                    <input type="button" onclick="requestTaskByID('submitChanges')" value="Display"><br><br>
+
+                    <!-- results table -->
+                    <table id="edit-table" style="display:none">
+                        <tr>
+                            <td><label for="edit-id">ID: </label></td>
+                            <td><textarea id="edit-id" readonly="readonly"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="edit-title">Title: </label></td>
+                            <td><textarea id="edit-title" minlength="1"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="edit-desc">Description: </label></td>
+                            <td><textarea id="edit-desc"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="edit-startTime">Start Time: </label></td>
+                            <td><textarea id="edit-startTime"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label id="edit-finishTime-label" for="edit-finishTime" style="display:none">Finish Time: </label></td>
+                            <td><textarea id="edit-finishTime" style="display:none"></textarea></td>
+                        </tr>
+
+                        <tr>
+                            <td><label for="edit-id">Task Complete:</label></td>
+                            <td>
+                                <label for="edit-complete">Yes</label>
+                                <input id="edit-complete" type="radio" name="edit-task-completeness" value="true">
+                                <label for="edit-incomplete">No</label>
+                                <input id="edit-incomplete" type="radio" name="edit-task-completeness" value="false">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="button" onclick="submitChanges()" value="Submit Changes"><br><br>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </article>
+        </section>
+        <!-- List All Cards -->
+        <!-- Interface and header -->
+        <div>
+            <h2>List All Current Tasks</h2>
+            <input type="button" onclick="requestAllTasks()" value="List Cards">
+        </div><br><br>
+        <!-- dynamically generated cards -->
+        <section class="cards" id="print-all">
+
+
+        </section>
+    </div>
+</body>
+
+</html>
